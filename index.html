@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sorteo Amigo Invisible 🎄</title>
+    <title>Sorteo Amigo Invisible 🎄 by SLZR Dev</title>
     <meta property="og:title" content="Amigo Invisible 🎁">
     <meta property="og:description" content="Organiza o descubre tu amigo invisible aquí.">
     <style>
@@ -13,12 +13,16 @@
         .container { width: 100%; max-width: 500px; background: var(--card); padding: 30px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); height: fit-content; }
         
         h1 { text-align: center; color: var(--primary); margin-top: 0; font-size: 1.8rem; }
-        p { line-height: 1.6; color: #4b5563; }
+        h3 { font-size: 1rem; margin-bottom: 5px; color: #4b5563; }
+        p { line-height: 1.6; color: #6b7280; font-size: 0.95rem; margin-top: 0; }
         
-        /* Estilos Admin */
-        textarea { width: 100%; height: 120px; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: inherit; box-sizing: border-box; resize: vertical; margin-bottom: 15px; }
+        /* Inputs */
+        textarea { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: inherit; box-sizing: border-box; resize: vertical; margin-bottom: 15px; font-size: 0.9rem; }
         textarea:focus { border-color: var(--primary); outline: none; }
         
+        #input-names { height: 80px; }
+        #input-exclusions { height: 60px; border-color: #fca5a5; } /* Un borde rojizo suave para diferenciar */
+
         button.action-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; transition: transform 0.1s; }
         button.action-btn:active { transform: scale(0.98); }
 
@@ -31,14 +35,13 @@
         .btn-copy:hover { background: #e5e7eb; color: #111827; }
         .btn-copy.success { background: #d1fae5; color: var(--green); }
         .btn-copy svg { width: 24px; height: 24px; }
-
+        .text-alert { color: #b91c1c; font-weight: 600; }
         /* Estilos Pantalla Revelación */
         #view-reveal { text-align: center; }
         .gift-box { font-size: 4rem; margin: 20px 0; animation: bounce 2s infinite; }
         .reveal-name { font-size: 2rem; font-weight: 800; color: var(--primary); margin: 20px 0; padding: 20px; border: 2px dashed var(--primary); border-radius: 10px; background: #fff5f5; display: none; }
         
         @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-20px);} 60% {transform: translateY(-10px);} }
-        
         .hidden { display: none !important; }
     </style>
 </head>
@@ -47,21 +50,33 @@
     <div class="container">
         <div id="view-admin" class="hidden">
             <h1>🎅 Organizador</h1>
-            <p>Ingresa los nombres de los participantes separados por comas. La herramienta generará un enlace único para cada uno.</p>
+            <p>Esta es una web para generar sorteos para jugar al amigo invisible. </p>
+            <p>No guardamos ningún dato, ni mails, ni nada. </p>
+            <p>Aquí puedes organizar el sorteo y luego cada participante recibirá un enlace para descubrir a quién debe regalarle.</p>
+
             
+            <h3>1. Participantes</h3>
+            <p>Nombres separados por comas.</p>
             <textarea id="input-names" placeholder="Ej: Juan, Ana, Pedro, Sofía..."></textarea>
+            
+            <h3>2. Exclusiones (Opcional)</h3>
+            <p>Parejas que <b>NO</b> deben regalarse entre sí. Una pareja por línea, separada por coma.</p>
+            <textarea id="input-exclusions" placeholder="Ej: Juan, Ana&#10;Pedro, Sofía"></textarea>
             
             <button class="action-btn" onclick="generarSorteo()">🎲 Realizar Sorteo</button>
             
             <ul id="output-list" class="result-list"></ul>
-            <p style="font-size: 0.8rem; color: #9ca3af; text-align: center; margin-top: 20px;">Los resultados se generan en tu navegador. Nada se guarda en ningún servidor.</p>
+            <div id="instructions" class="hidden">
+              <p>1. Copiá el enlace que se genera para cada participante y envíaselo por el medio que quieras (WhatsApp, email, etc.).</p>
+              <p>2. La persona al ingresar al enlace verá a quién debe regalarle. </p>
+              <p class="text-alert">No veas los nombres de los demás participantes para mantener la sorpresa!</p>
+            </div>
         </div>
 
         <div id="view-reveal" class="hidden">
             <h1>Tu Amigo Invisible</h1>
             <div class="gift-box">🎁</div>
-            <p>Te tocó regalarle a...</p>
-            
+            <p>Te ha tocado regalarle a...</p>
             <button id="btn-reveal" class="action-btn" onclick="mostrarNombre()">Ver Nombre</button>
             <div id="result-name" class="reveal-name"></div>
         </div>
@@ -71,51 +86,90 @@
     // --- LÓGICA DE ROUTING ---
     document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
-        
         if (params.has('q')) {
-            // Si hay parámetro 'q', mostramos la vista de PARTICIPANTE
             document.getElementById('view-reveal').classList.remove('hidden');
         } else {
-            // Si no hay parámetros, mostramos la vista de ADMIN
             document.getElementById('view-admin').classList.remove('hidden');
         }
     });
 
     // --- LÓGICA DEL ADMIN ---
     function generarSorteo() {
-        const input = document.getElementById('input-names').value;
+        const inputNames = document.getElementById('input-names').value;
+        const inputExclusions = document.getElementById('input-exclusions').value;
         const listaUI = document.getElementById('output-list');
-        listaUI.innerHTML = ''; // Limpiar
+        const instructions = document.getElementById('instructions');
+        listaUI.innerHTML = ''; 
 
-        let participantes = input.split(',').map(n => n.trim()).filter(n => n);
-
+        // 1. Parsear Nombres
+        let participantes = inputNames.split(',').map(n => n.trim()).filter(n => n);
         if (participantes.length < 2) {
-            alert("Necesitas al menos 2 personas para jugar.");
+            alert("Necesitas al menos 2 personas.");
             return;
         }
 
-        // Shuffle (Mezclar)
-        participantes.sort(() => Math.random() - 0.5);
+        // 2. Parsear Exclusiones
+        // Creamos un mapa: "Juan" -> ["Ana", "Pedro"] (Gente a la que Juan NO puede regalar)
+        let exclusionesMap = {};
+        let lineasExclusion = inputExclusions.split('\n');
+        
+        lineasExclusion.forEach(linea => {
+            let partes = linea.split(',').map(n => n.trim()).filter(n => n);
+            if (partes.length === 2) {
+                // Exclusión bidireccional (A no regala a B, y B no regala a A)
+                agregarExclusion(exclusionesMap, partes[0], partes[1]);
+                agregarExclusion(exclusionesMap, partes[1], partes[0]);
+            }
+        });
 
-        // Detectar automáticamente la URL base donde está alojado esto
-        // Esto elimina el '?q=...' si existiera y deja la url limpia
+        // 3. Intentar generar un sorteo válido (Lógica de Reintentos)
+        let ordenValido = null;
+        const MAX_INTENTOS = 1000; // Evitar bucles infinitos
+
+        for (let i = 0; i < MAX_INTENTOS; i++) {
+            // Mezclar
+            participantes.sort(() => Math.random() - 0.5);
+            
+            // Validar esta mezcla específica
+            let esValido = true;
+            for (let j = 0; j < participantes.length; j++) {
+                let quienRegala = participantes[j];
+                // Lógica circular: El último le regala al primero
+                let quienRecibe = (j === participantes.length - 1) ? participantes[0] : participantes[j+1];
+
+                // Verificamos si hay una exclusión prohibida
+                if (exclusionesMap[quienRegala] && exclusionesMap[quienRegala].includes(quienRecibe)) {
+                    esValido = false;
+                    break; 
+                }
+            }
+
+            if (esValido) {
+                ordenValido = participantes;
+                break;
+            }
+        }
+
+        if (!ordenValido) {
+            alert("⚠️ No se pudo encontrar una combinación válida con esas restricciones.\n\nIntenta eliminar algunas exclusiones o agregar más participantes.");
+            return;
+        }
+
+        // 4. Renderizar Resultados
         const urlBase = window.location.origin + window.location.pathname;
 
-        participantes.forEach((quienRegala, i) => {
-            let quienRecibe = (i === participantes.length - 1) ? participantes[0] : participantes[i+1];
+        ordenValido.forEach((quienRegala, i) => {
+            let quienRecibe = (i === ordenValido.length - 1) ? ordenValido[0] : ordenValido[i+1];
             
-            // Codificar
-            // Usamos encodeURIComponent dentro de btoa para soportar tildes y emojis
             let hash = btoa(encodeURIComponent(quienRecibe));
             let link = `${urlBase}?q=${hash}`;
             let mensaje = `🎄 Hola ${quienRegala}! Tu amigo invisible está aquí: ${link}`;
 
-            // Renderizar fila
             const li = document.createElement('li');
             li.className = 'result-item';
             li.innerHTML = `
                 <span class="name-tag">${quienRegala}</span>
-                <button class="btn-copy" onclick="copiar(this, '${escapeHtml(mensaje)}')" title="Copiar enlace para WhatsApp">
+                <button class="btn-copy" onclick="copiar(this, '${escapeHtml(mensaje)}')" title="Copiar enlace">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
                     </svg>
@@ -123,14 +177,20 @@
             `;
             listaUI.appendChild(li);
         });
+        instructions.classList.remove('hidden');
+    }
+
+    // Helper para guardar exclusiones
+    function agregarExclusion(map, nombreA, nombreB) {
+        if (!map[nombreA]) map[nombreA] = [];
+        // Normalizamos nombres para evitar errores tontos de tipeo o espacios
+        map[nombreA].push(nombreB);
     }
 
     async function copiar(btn, texto) {
         try {
             await navigator.clipboard.writeText(texto);
             btn.classList.add('success');
-            // Opcional: quitar la clase después de un rato
-            // setTimeout(() => btn.classList.remove('success'), 2000);
         } catch (err) {
             prompt("Copia este texto manualmente:", texto);
         }
@@ -144,23 +204,15 @@
     function mostrarNombre() {
         const params = new URLSearchParams(window.location.search);
         const encoded = params.get('q');
-        
         if (!encoded) return;
-
         try {
-            // Decodificar: Base64 -> URI Component -> String
             const nombre = decodeURIComponent(atob(encoded));
-            
             const div = document.getElementById('result-name');
             div.innerText = nombre;
             div.style.display = 'block';
-            
-            // Ocultar botón y caja
             document.getElementById('btn-reveal').style.display = 'none';
-            document.querySelector('.gift-box').innerText = '🎅'; // Cambia ícono
-        } catch (e) {
-            alert("Error: El enlace parece estar roto o incompleto.");
-        }
+            document.querySelector('.gift-box').innerText = '🎅';
+        } catch (e) { alert("Error en el enlace."); }
     }
 </script>
 </body>
