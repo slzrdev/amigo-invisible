@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador Admin - Amigo Invisible</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 40px; background-color: #f3f4f6; color: #1f2937; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        h1 { font-size: 1.5rem; margin-bottom: 20px; color: #111827; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; }
+        
+        textarea, input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 20px; box-sizing: border-box; }
+        textarea { height: 100px; resize: vertical; }
+        
+        button.primary { width: 100%; background-color: #2563eb; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 1rem;}
+        button.primary:hover { background-color: #1d4ed8; }
+
+        /* Estilos de la lista de resultados */
+        #lista-resultados { list-style: none; padding: 0; margin-top: 30px; }
+        .fila { display: flex; align-items: center; justify-content: space-between; background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #e5e7eb; transition: all 0.2s; }
+        .fila:hover { border-color: #d1d5db; }
+        
+        .nombre-persona { font-weight: 600; font-size: 1.1rem; }
+        
+        /* Botón del ícono */
+        .btn-copy {
+            background: none; border: none; cursor: pointer; padding: 8px; border-radius: 50%;
+            color: #6b7280; /* Gris inicial */
+            transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-copy:hover { background-color: #e5e7eb; color: #374151; }
+        
+        .btn-copy svg { width: 24px; height: 24px; }
+
+        /* Estado COPIADO (Verde) */
+        .btn-copy.copiado {
+            color: #10b981; /* Verde éxito */
+            background-color: #d1fae5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎅 Administrador de Sorteo</h1>
+
+    <label for="nombres">Participantes (separados por coma)</label>
+    <textarea id="nombres" placeholder="Ej: Juan, Ana, Pedro, María">Juan, Ana, Pedro, María</textarea>
+    
+    <label for="urlBase">URL de tu GitHub Pages</label>
+    <input type="text" id="urlBase" value="https://slzrdev.github.io/amigo-invisible/" placeholder="https://...">
+
+    <button class="primary" onclick="generarSorteo()">🎲 Generar Links</button>
+
+    <ul id="lista-resultados"></ul>
+</div>
+
+<script>
+    function generarSorteo() {
+        const input = document.getElementById('nombres').value;
+        const urlBase = document.getElementById('urlBase').value.trim();
+        const listaUI = document.getElementById('lista-resultados');
+        
+        // Limpiar lista anterior
+        listaUI.innerHTML = '';
+
+        let participantes = input.split(',').map(n => n.trim()).filter(n => n);
+
+        if (participantes.length < 2) {
+            alert("Mínimo 2 personas para jugar.");
+            return;
+        }
+
+        // Shuffle
+        participantes.sort(() => Math.random() - 0.5);
+
+        participantes.forEach((quienRegala, i) => {
+            // Lógica circular
+            let quienRecibe = (i === participantes.length - 1) ? participantes[0] : participantes[i+1];
+
+            // Generar Link
+            let hash = btoa(encodeURIComponent(quienRecibe));
+            // Aseguramos que la URL termine en / o ? según corresponda, o simplemente unimos
+            // Simple check para evitar doble slash si el usuario ya lo puso
+            let cleanBase = urlBase.endsWith('/') ? urlBase.slice(0, -1) : urlBase; 
+            let link = `${cleanBase}/index.html?q=${hash}`; // Asumiendo que subiste index.html
+
+            // Mensaje completo para WhatsApp
+            let mensajeCompleto = `🎄 Hola ${quienRegala}! Tu asignación para el Amigo Invisible está aquí: ${link}`;
+
+            // Crear elemento en el DOM
+            const li = document.createElement('li');
+            li.className = 'fila';
+            li.innerHTML = `
+                <span class="nombre-persona">${quienRegala}</span>
+                <button class="btn-copy" onclick="copiar(this, '${escapeHtml(mensajeCompleto)}')" title="Copiar mensaje">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                    </svg>
+                </button>
+            `;
+            listaUI.appendChild(li);
+        });
+    }
+
+    async function copiar(btn, texto) {
+        try {
+            await navigator.clipboard.writeText(texto);
+            
+            // Feedback visual: añadir clase 'copiado'
+            btn.classList.add('copiado');
+            
+            // Opcional: Volver a gris después de 2 segundos (descomentar si se desea)
+            // setTimeout(() => btn.classList.remove('copiado'), 2000);
+            
+        } catch (err) {
+            console.error('Error al copiar: ', err);
+            alert('No se pudo copiar automáticamente. Intenta seleccionando el texto.');
+        }
+    }
+
+    // Pequeña utilidad para escapar comillas simples en el HTML inline
+    function escapeHtml(text) {
+        return text.replace(/'/g, "\\'");
+    }
+</script>
+
+</body>
+</html>
