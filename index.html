@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Amigo Invisible 🎄</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #f0f0f0; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        h1 { color: #d42426; }
+        #resultado { font-size: 24px; font-weight: bold; color: #2e7d32; margin-top: 20px; display: none;}
+        button { background: #d42426; color: white; border: none; padding: 10px 20px; font-size: 18px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🎅 Amigo Invisible</h1>
+        <p>Toca el botón para descubrir a quién le tienes que regalar.</p>
+        <button onclick="revelar()">Ver mi asignación</button>
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        function revelar() {
+            // 1. Obtener el parámetro 'q' de la URL
+            const params = new URLSearchParams(window.location.search);
+            const encodedName = params.get('q');
+
+            if (!encodedName) {
+                document.getElementById('resultado').innerText = "Error: Enlace inválido.";
+                return;
+            }
+
+            try {
+                // 2. Decodificar Base64 (simple ofuscación)
+                // Usamos decodeURIComponent para caracteres especiales (tildes, ñ)
+                const nombre = decodeURIComponent(atob(encodedName));
+                
+                document.getElementById('resultado').innerText = "🎁 Le regalas a: " + nombre;
+                document.getElementById('resultado').style.display = 'block';
+                document.querySelector('button').style.display = 'none';
+            } catch (e) {
+                document.getElementById('resultado').innerText = "Error al decodificar.";
+            }
+        }
+    </script>
+</body>
+</html>
