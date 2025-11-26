@@ -196,7 +196,7 @@
         // ACTIVAR PROTECCIÓN CONTRA REFRESH
         // Esto hace que el navegador pregunte "¿Seguro que quieres salir?"
         window.onbeforeunload = function() {
-            return "Si recargas la página vas a perder los datos del sorteo.";
+            return "Si recargas la página perderás los datos del sorteo.";
         };
     }
 
@@ -208,3 +208,31 @@
 
     async function copiar(btn, texto) {
         try {
+            await navigator.clipboard.writeText(texto);
+            btn.classList.add('success');
+        } catch (err) {
+            prompt("Copia este texto manualmente:", texto);
+        }
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/'/g, "\\'");
+    }
+
+    // --- LÓGICA DEL PARTICIPANTE ---
+    function mostrarNombre() {
+        const params = new URLSearchParams(window.location.search);
+        const encoded = params.get('q');
+        if (!encoded) return;
+        try {
+            const nombre = decodeURIComponent(atob(encoded));
+            const div = document.getElementById('result-name');
+            div.innerText = nombre;
+            div.style.display = 'block';
+            document.getElementById('btn-reveal').style.display = 'none';
+            document.querySelector('.gift-box').innerText = '🎅';
+        } catch (e) { alert("Error en el enlace."); }
+    }
+</script>
+</body>
+</html>
